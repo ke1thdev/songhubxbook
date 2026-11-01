@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="Find your next song in the SongHub songbook. Search 48,000 songs by title, artist, or code. Save favorites and take the whole book offline.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>songhub/book</title>
+  <script>
+    (() => { let theme; try { theme=localStorage.getItem('songhub:theme'); } catch {} document.documentElement.dataset.theme=theme==='dark'||theme==='light'?theme:matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'; })();
+  </script>
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="preload" href="./fonts/instrument-sans.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./app.js" type="module"></script>
+</head>
+<body>
+  <a class="skip-link" href="#search">Skip to search</a>
+  <svg class="svg-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.3.9-4.6 4.4 1.1 6.3-5.6-3-5.6 3 1.1-6.3L2.9 9.6l6.3-.9Z"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4"/></symbol>
+    <symbol id="i-install" viewBox="0 0 24 24"><rect x="5" y="2.5" width="14" height="19" rx="2"/><path d="M12 6v8m-3-3 3 3 3-3m-5 7h4"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M15 8V3H3v13h5"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6c-3-2-6-2-9-1v15c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1Zm0 0v15"/></symbol>
+  </svg>
+
+  <header class="masthead">
+    <div class="masthead-inner">
+      <h1 class="brand-heading"><a class="wordmark" href="./" aria-label="songhub/book home"><span>songhub<span class="brand-book">/book</span></span></a></h1>
+      <div class="header-actions">
+        <button class="text-action" id="install-button" type="button" aria-label="Install app"><span>Install<span class="install-long"> app</span></span></button>
+        <a class="text-action pdf-link" href="./downloads/SongHub-Songbook.pdf" download="SongHub-Songbook.pdf" aria-label="Download PDF songbook"><span class="desktop-label">Download PDF</span><span class="mobile-label" aria-hidden="true">PDF</span></a>
+        <button class="text-action theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false">Dark</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <div class="search-area" role="search">
+      <label class="sr-only" for="search">Search songs by title, artist, or code</label>
+      <div class="search-field">
+        <svg class="icon search-icon"><use href="#i-search"/></svg>
+        <input id="search" type="search" maxlength="200" autocomplete="off" spellcheck="false" placeholder="Search title, artist, or song code" aria-controls="song-list" enterkeyhint="search">
+        <button class="icon-button clear-button" id="clear-search" type="button" aria-label="Clear search" hidden><svg class="icon"><use href="#i-close"/></svg></button>
+        <kbd class="search-shortcut" aria-hidden="true">/</kbd>
+      </div>
+      <div class="search-meta">
+        <p class="search-hint"><span class="search-hint-desktop">Search any part of a title or artist. </span>Tap a code to copy it.</p>
+        <button class="offline-status" id="offline-button" type="button" aria-label="Offline access: preparing"><span class="status-dot" id="status-dot"></span><span id="offline-label">Preparing offline access</span></button>
+      </div>
+    </div>
+
+    <div class="view-bar">
+      <div class="view-tabs" role="group" aria-label="Song collection">
+        <button id="all-tab" class="view-tab active" type="button" aria-pressed="true" data-view="all">All songs</button>
+        <button id="favorites-tab" class="view-tab" type="button" aria-pressed="false" data-view="favorites"><svg class="icon"><use href="#i-star"/></svg>Favorites<span id="favorites-count" class="count">0</span></button>
+      </div>
+      <span class="result-summary" id="result-summary" role="status" aria-live="polite">Loading songbook…</span>
+    </div>
+
+    <section class="catalog" aria-label="Songs" id="catalog" aria-busy="true">
+      <div class="list-heading" aria-hidden="true"><span>Song title</span><span>Artist</span><span class="code-label">Code</span><span class="sr-only">Favorite</span></div>
+      <ul class="song-list" id="song-list"></ul>
+      <div class="skeleton-list" id="skeleton-list" aria-hidden="true">
+        <div class="skeleton-row"><span></span><span></span><span></span><span></span></div>
+        <div class="skeleton-row"><span></span><span></span><span></span><span></span></div>
+        <div class="skeleton-row"><span></span><span></span><span></span><span></span></div>
+        <div class="skeleton-row"><span></span><span></span><span></span><span></span></div>
+        <div class="skeleton-row"><span></span><span></span><span></span><span></span></div>
+        <div class="skeleton-row"><span></span><span></span><span></span><span></span></div>
+        <div class="skeleton-row"><span></span><span></span><span></span><span></span></div>
+        <div class="skeleton-row"><span></span><span></span><span></span><span></span></div>
+      </div>
+      <div class="list-state" id="list-state" role="status" hidden></div>
+      <div class="list-pagination" id="pagination" hidden>
+        <p id="shown-count"></p>
+        <div class="page-actions">
+          <button class="pagination-button" id="previous-page" type="button" disabled>Previous</button>
+          <button class="pagination-button" id="next-page" type="button">Next <svg class="icon"><use href="#i-arrow"/></svg></button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="page-footer"><span>Keep a few favorites. Sing a few more.</span><a href="./downloads/SongHub-Songbook.pdf" download="SongHub-Songbook.pdf">The complete songbook <svg class="icon"><use href="#i-download"/></svg></a></footer>
+  </main>
+
+  <dialog id="app-dialog" aria-labelledby="dialog-title">
+    <div class="dialog-heading"><h2 id="dialog-title">Take SongHub offline</h2><button id="close-dialog" class="icon-button" type="button" aria-label="Close"><svg class="icon"><use href="#i-close"/></svg></button></div>
+    <p class="dialog-intro">Your songbook, wherever the music takes you.</p>
+    <div class="offline-detail"><svg class="icon"><use href="#i-book"/></svg><div><strong id="dialog-offline-title">Preparing offline access</strong><p id="dialog-offline-detail">Saving the full catalog and PDF on this device.</p></div></div>
+    <button class="secondary-button" id="retry-offline" type="button" hidden>Try again</button>
+    <button class="primary-button" id="native-install" type="button" hidden><svg class="icon"><use href="#i-install"/></svg>Install SongHub</button>
+    <div class="install-instructions" id="install-instructions">
+      <h3>Add to your home screen</h3>
+      <p id="install-help">In your browser menu, choose <strong>Install app</strong> or <strong>Add to Home screen</strong>.</p>
+    </div>
+    <p class="dialog-footnote">Favorites stay in this browser on this device. Clearing browser data removes saved favorites and offline files.</p>
+    <button class="secondary-button" id="update-app" type="button" hidden>Update SongHub</button>
+  </dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <noscript><p class="noscript">Enable JavaScript to search and save favorites. You can still <a href="./downloads/SongHub-Songbook.pdf">download the PDF songbook</a>.</p></noscript>
+</body>
+</html>
